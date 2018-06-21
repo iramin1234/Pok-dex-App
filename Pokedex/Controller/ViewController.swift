@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import AVFoundation
 
 class ViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UISearchBarDelegate {
     @IBOutlet weak var searchBar: UISearchBar!
@@ -14,6 +15,8 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     var PokemonArr = [Pokemon]()
     var filteredPokemonArr = [Pokemon]()
     var inSearchMode = false
+    
+    var musicPlayer: AVAudioPlayer!
     @IBOutlet weak var collection: UICollectionView!
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,6 +26,7 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         searchBar.delegate = self
         
         parseCSV()
+        initializeAudio()
     }
     
     func parseCSV(){
@@ -42,10 +46,14 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
             print(err.debugDescription)
         }
     }
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        view.endEditing(true)
+    }
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchBar.text == nil || searchBar.text == ""{
             inSearchMode = false
             collection.reloadData()
+            view.endEditing(true)
         }else{
             inSearchMode = true
             let lowerCase = searchBar.text!.lowercased()
@@ -71,7 +79,24 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
         }
     }
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        var pokemon: Pokemon!
+        if inSearchMode{
+            pokemon = filteredPokemonArr[indexPath.row]
+        }else{
+            pokemon = PokemonArr[indexPath.row]
+        }
+        
+        performSegue(withIdentifier: "PokeDetailSegue", sender: pokemon)
+    }
     
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "PokeDetailSegue"{
+            if let pokeDetailVC = segue.destination as? PokeDetailVC{
+                if let pokemon = sender as? Pokemon{
+                    pokeDetailVC.pokemon = pokemon
+                }
+            }
+        }
     }
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if inSearchMode{
@@ -85,6 +110,28 @@ class ViewController: UIViewController, UICollectionViewDelegate, UICollectionVi
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: 105, height: 105)
     }
-
+    @IBAction func musicBtnPressed(_ sender: UIButton) {
+        if musicPlayer.isPlaying{
+            musicPlayer.pause()
+            sender.alpha = 0.2
+        }else{
+            musicPlayer.play()
+            sender.alpha = 1.0
+        }
+    }
+    
+    func initializeAudio(){
+        let path = Bundle.main.path(forResource: "music", ofType: "mp3")!
+        
+        do{
+            musicPlayer = try AVAudioPlayer(contentsOf: URL(string: path)!)
+            musicPlayer.prepareToPlay()
+            musicPlayer.numberOfLoops = -1
+            musicPlayer.play()
+        }catch let err as NSError{
+            print(err.debugDescription)
+        }
+    }
+    
 }
 
